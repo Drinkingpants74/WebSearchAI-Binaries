@@ -84,43 +84,24 @@ jobs:
       - name: Create tar file
         if: contains(matrix.archiveForm, 'tar.gz')
         run: |
-          tar -czf whisper-${{ steps.clone.outputs.tag }}-${{ matrix.platform }}.tar.gz -C package .
+          cd package/
+          tar -czf whisper-${{ steps.clone.outputs.tag }}-${{ matrix.platform }}.tar.gz *
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6
         with:
           name: whisper-${{ matrix.platform }}
-          path: whisper-${{ steps.clone.outputs.tag }}-${{ matrix.platform }}.${{ matrix.archiveForm }}
+          path: package/whisper-${{ steps.clone.outputs.tag }}-${{ matrix.platform }}.${{ matrix.archiveForm }}
           retention-days: 90
-      
+
       - name: Create Release
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: whisper-${{ steps.clone.outputs.tag }}
           name: whisper.cpp ${{ steps.clone.outputs.tag }}
-          files: whisper-${{ steps.clone.outputs.tag }}-${{ matrix.platform }}.${{ matrix.archiveForm }}
+          files: package/whisper-${{ steps.clone.outputs.tag }}-${{ matrix.platform }}.${{ matrix.archiveForm }}
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-
-      # - name: Upload artifact
-      #   uses: actions/upload-artifact@v6
-      #   with:
-      #     name: whisper-${{ matrix.platform }}
-      #     path: package/whisper-${{ steps.clone.outputs.tag }}-${{ matrix.platform }}.${{ matrix.archiveForm }}
-      #     retention-days: 90
-
-      # - name: Create Release
-      #   if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-      #   uses: softprops/action-gh-release@v2
-      #   with:
-      #     tag_name: whisper-${{ steps.clone.outputs.tag }}
-      #     name: whisper.cpp ${{ steps.clone.outputs.tag }}
-      #     files: package/whisper-${{ steps.clone.outputs.tag }}-${{ matrix.platform }}.${{ matrix.archiveForm }}
-      #     draft: false
-      #     prerelease: false
-        # env:
-        #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
