@@ -13,13 +13,13 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-latest
-            platform: MacOS
-            binary_name: whisper-stream
+          # - os: macos-latest
+          #   platform: MacOS
+          #   binary_name: whisper-stream
             
-          - os: ubuntu-latest
-            platform: Linux
-            binary_name: whisper-stream
+          # - os: ubuntu-latest
+          #   platform: Linux
+          #   binary_name: whisper-stream
             
           - os: windows-latest
             platform: Windows
