@@ -21,9 +21,9 @@ jobs:
             platform: Linux
             binary_name: whisper-stream
             
-          - os: windows-latest
-            platform: Windows
-            binary_name: whisper-stream.exe
+          # - os: windows-latest
+          #   platform: Windows
+          #   binary_name: whisper-stream.exe
 
     runs-on: ${{ matrix.os }}
     name: Build Binaries - ${{ matrix.platform }}
