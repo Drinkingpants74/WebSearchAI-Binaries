@@ -1,0 +1,94 @@
+name: Build Whisper.cpp Binaries
+
+on:
+  schedule:
+    - cron: '0 0 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-whisperCPP-binaries:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            platform: MacOS
+            binary_name: whisper-stream
+            
+          - os: ubuntu-latest
+            platform: Linux
+            binary_name: whisper-stream
+            
+          - os: windows-latest
+            platform: Windows
+            binary_name: whisper-stream.exe
+
+    runs-on: ${{ matrix.os }}
+    name: Build Binaries - ${{ matrix.platform }}
+
+    steps:
+      - name: Install SDL2 (MacOS)
+        if: matrix.os == 'macos-latest'
+        run: brew install sdl2
+
+      - name: Install SDL2 (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get install libsdl2-dev
+
+      - name: Clone and Build Whisper.cpp
+        id: clone
+        shell: bash  # Use bash on all platforms
+        run: |
+          git clone https://github.com/ggml-org/whisper.cpp.git
+          cd whisper.cpp
+          LATEST_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
+          git checkout $LATEST_TAG
+          cmake -B build -DWHISPER_SDL2=ON
+          cmake --build build --config Release -j
+          echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+
+      - name: Download Model
+        shell: bash
+        run: |
+          cd whisper.cpp/models
+          bash download-ggml-model.sh base.en
+
+      - name: Prepare files for zip
+        shell: bash
+        run: |
+          mkdir -p package
+          # Copy entire bin directory
+          cp -r whisper.cpp/build/bin/* package/
+          # Copy model into package
+          cp whisper.cpp/models/ggml-base.en.bin package/
+          # Copy license
+          cp whisper.cpp/LICENSE package/
+
+      - name: Create zip file
+        uses: thedoctor0/zip-release@0.7.6
+        with:
+          type: 'zip'
+          filename: whisper-${{ steps.clone.outputs.tag }}-${{ matrix.platform }}.zip
+          directory: package
+          path: .
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: whisper-${{ matrix.platform }}
+          path: package/whisper-${{ steps.clone.outputs.tag }}-${{ matrix.platform }}.zip
+          retention-days: 90
+
+      - name: Create Release
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: whisper-${{ steps.clone.outputs.tag }}
+          name: whisper.cpp ${{ steps.clone.outputs.tag }}
+          files: package/whisper-${{ steps.clone.outputs.tag }}-${{ matrix.platform }}.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
