@@ -21,9 +21,9 @@ jobs:
             platform: Linux
             binary_name: whisper-stream
             
-          # - os: windows-latest
-          #   platform: Windows
-          #   binary_name: whisper-stream.exe
+          - os: windows-latest
+            platform: Windows
+            binary_name: whisper-stream.exe
 
     runs-on: ${{ matrix.os }}
     name: Build Binaries - ${{ matrix.platform }}
@@ -37,6 +37,11 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get install libsdl2-dev
 
+      - name: Install SDL2 (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          vcpkg install sdl2:x64-windows
+
       - name: Clone and Build Whisper.cpp
         id: clone
         shell: bash  # Use bash on all platforms
@@ -45,7 +50,7 @@ jobs:
           cd whisper.cpp
           LATEST_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
           git checkout $LATEST_TAG
-          cmake -B build -DWHISPER_SDL2=ON
+          cmake -B build -DWHISPER_SDL2=ON ${{ matrix.os == 'windows-latest' && '-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake' || '' }}
           cmake --build build --config Release -j
           echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
 
